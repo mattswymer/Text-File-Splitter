@@ -309,7 +309,6 @@ function splitByWords(text, allocations) {
   const parts = [];
   const wordPattern = /\\S+/gu;
   const whitespacePattern = /\\s+/uy;
-  let pointIndex = 0;
   let wordsSeen = 0;
   let textOffset = 0;
   let partStart = 0;
@@ -330,7 +329,6 @@ function splitByWords(text, allocations) {
 
     parts.push(text.slice(partStart, textOffset));
     partStart = textOffset;
-    pointIndex += 1;
   }
 
   parts.push(text.slice(partStart));
