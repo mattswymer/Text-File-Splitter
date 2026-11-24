@@ -35,19 +35,27 @@ const state = {
   allocations: [34, 33, 33],
   isReading: false,
   isExporting: false,
-  readRequest: 0
+  readRequest: 0,
+  stats: null
 };
 
 function countWords(text) {
-  return (text.match(/\S+/gu) || []).length;
+  let count = 0;
+  for (const _match of text.matchAll(/\S+/gu)) count += 1;
+  return count;
 }
 
 function countCharacters(text) {
-  return Array.from(text).length;
+  let count = 0;
+  for (const _character of text) count += 1;
+  return count;
 }
 
 function countLines(text) {
-  return text.length === 0 ? 0 : text.split(/\r\n|\n|\r/u).length;
+  if (text.length === 0) return 0;
+  let count = 1;
+  for (const _match of text.matchAll(/\r\n|\n|\r/gu)) count += 1;
+  return count;
 }
 
 function formatBytes(bytes) {
@@ -208,9 +216,9 @@ function updateFileSummary() {
   elements.fileName.textContent = state.file.name;
   elements.fileStats.textContent = [
     formatBytes(state.file.size),
-    `${countWords(state.text).toLocaleString()} words`,
-    `${countCharacters(state.text).toLocaleString()} characters`,
-    `${countLines(state.text).toLocaleString()} lines`
+    `${state.stats.words.toLocaleString()} words`,
+    `${state.stats.characters.toLocaleString()} characters`,
+    `${state.stats.lines.toLocaleString()} lines`
   ].join(" · ");
 
   const isLarge = state.file.size > MAX_FILE_SIZE_WARNING;
@@ -235,8 +243,8 @@ function updatePreview() {
   elements.previewDetails.hidden = false;
   const details = document.createDocumentFragment();
   const unitCount = elements.splitMode.value === "words"
-    ? countWords(state.text)
-    : countCharacters(state.text);
+    ? state.stats.words
+    : state.stats.characters;
   const unitName = elements.splitMode.value;
 
   state.allocations.forEach((allocation, index) => {
@@ -270,37 +278,62 @@ function getCumulativeBoundaries(total, allocations) {
 }
 
 function splitByCharacters(text, allocations) {
-  const characters = Array.from(text);
-  const boundaries = getCumulativeBoundaries(characters.length, allocations);
+  const splitPoints = getCumulativeBoundaries(countCharacters(text), allocations).slice(0, -1);
   const parts = [];
-  let start = 0;
+  let pointIndex = 0;
+  let characterIndex = 0;
+  let textOffset = 0;
+  let partStart = 0;
 
-  for (const end of boundaries) {
-    parts.push(characters.slice(start, end).join(""));
-    start = end;
+  while (pointIndex < splitPoints.length && splitPoints[pointIndex] === 0) {
+    parts.push("");
+    pointIndex += 1;
   }
+
+  for (const character of text) {
+    characterIndex += 1;
+    textOffset += character.length;
+    while (pointIndex < splitPoints.length && characterIndex >= splitPoints[pointIndex]) {
+      parts.push(text.slice(partStart, textOffset));
+      partStart = textOffset;
+      pointIndex += 1;
+    }
+  }
+
+  parts.push(text.slice(partStart));
   return parts;
 }
 
 function splitByWords(text, allocations) {
-  const tokens = text.match(/\s+|\S+/gu) || [];
-  const boundaries = getCumulativeBoundaries(countWords(text), allocations);
+  const splitPoints = getCumulativeBoundaries(countWords(text), allocations).slice(0, -1);
   const parts = [];
-  let cursor = 0;
+  const wordPattern = /\\S+/gu;
+  const whitespacePattern = /\\s+/uy;
+  let pointIndex = 0;
   let wordsSeen = 0;
+  let textOffset = 0;
+  let partStart = 0;
 
-  for (const targetWordCount of boundaries.slice(0, -1)) {
-    const start = cursor;
-    while (cursor < tokens.length && wordsSeen < targetWordCount) {
-      if (/^\S/u.test(tokens[cursor])) wordsSeen += 1;
-      cursor += 1;
+  for (const targetWordCount of splitPoints) {
+    while (wordsSeen < targetWordCount) {
+      wordPattern.lastIndex = textOffset;
+      const match = wordPattern.exec(text);
+      if (!match) break;
+      wordsSeen += 1;
+      textOffset = wordPattern.lastIndex;
     }
+
     // Keep whitespace after a completed word with the preceding part.
-    while (cursor < tokens.length && /^\s+$/u.test(tokens[cursor])) cursor += 1;
-    parts.push(tokens.slice(start, cursor).join(""));
+    whitespacePattern.lastIndex = textOffset;
+    const whitespace = whitespacePattern.exec(text);
+    if (whitespace) textOffset = whitespacePattern.lastIndex;
+
+    parts.push(text.slice(partStart, textOffset));
+    partStart = textOffset;
+    pointIndex += 1;
   }
 
-  parts.push(tokens.slice(cursor).join(""));
+  parts.push(text.slice(partStart));
   return parts;
 }
 
@@ -343,6 +376,11 @@ async function loadFile(file) {
     if (requestId !== state.readRequest) return;
     state.file = file;
     state.text = text;
+    state.stats = {
+      words: countWords(text),
+      characters: countCharacters(text),
+      lines: countLines(text)
+    };
     state.extension = extension;
     elements.filePrefix.value = file.name.slice(0, -extension.length) || "split";
     updateFileSummary();
@@ -394,6 +432,7 @@ function clearFile() {
   state.readRequest += 1;
   state.file = null;
   state.text = null;
+  state.stats = null;
   state.isReading = false;
   elements.fileInput.value = "";
   elements.filePrefix.value = "split";
