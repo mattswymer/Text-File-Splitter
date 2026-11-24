@@ -76,6 +76,7 @@ Text-File-Splitter/
 ├── styles.css   # Responsive interface and visual styling
 ├── app.js       # File handling, allocation, splitting, and export logic
 ├── README.md    # Documentation
+├── LICENSE      # MIT license
 └── .gitignore   # Common local files to exclude
 ```
 
