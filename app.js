@@ -39,7 +39,7 @@ const state = {
 };
 
 function countWords(text) {
-  return (text.match(/\\S+/gu) || []).length;
+  return (text.match(/\S+/gu) || []).length;
 }
 
 function countCharacters(text) {
@@ -47,7 +47,7 @@ function countCharacters(text) {
 }
 
 function countLines(text) {
-  return text.length === 0 ? 0 : text.split(/\\r\\n|\\n|\\r/u).length;
+  return text.length === 0 ? 0 : text.split(/\r\n|\n|\r/u).length;
 }
 
 function formatBytes(bytes) {
@@ -101,7 +101,7 @@ function isAllocationValid() {
 
 function getSafePrefix(value) {
   const cleaned = value.trim()
-    .replace(/[<>:"/\\\\|?*\\u0000-\\u001f]/gu, "_")
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/gu, "_")
     .replace(/[. ]+$/u, "")
     .slice(0, 100);
   return cleaned || "split";
@@ -227,6 +227,7 @@ function updatePreview() {
   if (!state.file || state.text === null) {
     elements.previewEmpty.hidden = false;
     elements.previewDetails.hidden = true;
+    updateExportAvailability();
     return;
   }
 
@@ -282,37 +283,25 @@ function splitByCharacters(text, allocations) {
 }
 
 function splitByWords(text, allocations) {
-  const tokens = text.match(/\\s+|\\S+/gu) || [];
+  const tokens = text.match(/\s+|\S+/gu) || [];
   const boundaries = getCumulativeBoundaries(countWords(text), allocations);
   const parts = [];
   let cursor = 0;
   let wordsSeen = 0;
 
   for (const targetWordCount of boundaries.slice(0, -1)) {
+    const start = cursor;
     while (cursor < tokens.length && wordsSeen < targetWordCount) {
-      if (/^\\S/u.test(tokens[cursor])) wordsSeen += 1;
+      if (/^\S/u.test(tokens[cursor])) wordsSeen += 1;
       cursor += 1;
     }
     // Keep whitespace after a completed word with the preceding part.
-    while (cursor < tokens.length && /^\\s+$/u.test(tokens[cursor])) cursor += 1;
-    parts.push(tokens.slice(parts.length === 0 ? 0 : 0, 0).join(""));
+    while (cursor < tokens.length && /^\s+$/u.test(tokens[cursor])) cursor += 1;
+    parts.push(tokens.slice(start, cursor).join(""));
   }
 
-  // Build each part from the original token sequence without dropping or duplicating text.
-  const output = [];
-  cursor = 0;
-  wordsSeen = 0;
-  for (const targetWordCount of boundaries.slice(0, -1)) {
-    const start = cursor;
-    while (cursor < tokens.length && wordsSeen < targetWordCount) {
-      if (/^\\S/u.test(tokens[cursor])) wordsSeen += 1;
-      cursor += 1;
-    }
-    while (cursor < tokens.length && /^\\s+$/u.test(tokens[cursor])) cursor += 1;
-    output.push(tokens.slice(start, cursor).join(""));
-  }
-  output.push(tokens.slice(cursor).join(""));
-  return output;
+  parts.push(tokens.slice(cursor).join(""));
+  return parts;
 }
 
 function downloadBlob(filename, content) {
