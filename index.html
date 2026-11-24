@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <meta name="description" content="Split plain-text and Markdown documents into accurately sized parts.">
+  <title>Text File Splitter</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="app-header">
+      <a class="brand" href="./" aria-label="Text File Splitter home">
+        <span class="brand-mark" aria-hidden="true">T</span>
+        <span>Text File Splitter</span>
+      </a>
+      <span class="header-note">Private, local file processing</span>
+    </header>
+    <section class="intro">
+      <p class="eyebrow">DOCUMENT TOOL</p>
+      <h1>Split a document.<br><span>Keep every word.</span></h1>
+      <p class="intro-copy">Divide a Markdown or text file into smaller parts using custom percentages. Your document stays in your browser; nothing is uploaded.</p>
+    </section>
+    <section class="workspace" aria-label="File splitting workspace">
+      <div class="section-heading">
+        <div><p class="step-label">01 / SOURCE</p><h2>Choose a document</h2></div>
+        <span class="file-types">.TXT&nbsp; · &nbsp;.MD</span>
+      </div>
+      <label class="drop-zone" id="dropZone" for="fileInput">
+        <input id="fileInput" type="file" accept=".txt,.md,text/plain,text/markdown">
+        <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15.5v3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="drop-title" id="dropTitle">Drop a file here or <strong>browse</strong></span>
+        <span class="drop-hint">Markdown and plain-text files · Processed locally</span>
+      </label>
+      <div class="file-summary" id="fileSummary" hidden>
+        <div class="file-summary-main"><span class="file-badge" aria-hidden="true">TXT</span><div class="file-details"><strong id="fileName">No file selected</strong><span id="fileStats"></span></div></div>
+        <button class="text-button" id="removeFile" type="button">Remove</button>
+      </div>
+      <p class="notice" id="fileNotice" role="status" hidden></p>
+      <div class="section-divider"></div>
+      <div class="section-heading"><div><p class="step-label">02 / CONFIGURE</p><h2>Set your split</h2></div></div>
+      <div class="settings-grid">
+        <div class="field"><label for="partCount">Number of output files</label><select id="partCount">
+          <option value="2">2 files</option><option value="3" selected>3 files</option><option value="4">4 files</option><option value="5">5 files</option><option value="6">6 files</option><option value="7">7 files</option><option value="8">8 files</option><option value="9">9 files</option><option value="10">10 files</option><option value="12">12 files</option><option value="15">15 files</option><option value="20">20 files</option>
+        </select></div>
+        <div class="field"><label for="splitMode">Split at</label><select id="splitMode"><option value="words" selected>Word boundaries</option><option value="characters">Exact character positions</option></select></div>
+      </div>
+      <div class="allocation-heading"><div><label class="group-label">Document allocation</label><p class="field-help">Set the percentage of the document assigned to each part.</p></div><button class="text-button" id="resetAllocation" type="button">Reset evenly</button></div>
+      <div class="allocation-list" id="allocationList"></div>
+      <div class="allocation-status" id="allocationStatus" role="status" aria-live="polite"><span class="status-dot" aria-hidden="true"></span><span id="allocationMessage">Allocations must total 100%.</span></div>
+      <div class="section-divider"></div>
+      <div class="section-heading"><div><p class="step-label">03 / EXPORT</p><h2>Output settings</h2></div></div>
+      <div class="field"><label for="filePrefix">Output filename prefix</label><input id="filePrefix" type="text" maxlength="100" value="split" autocomplete="off" spellcheck="false"><p class="field-help">Files will be named <code id="filenameExample">split_part-01.txt</code>, <code>part-02</code>, and so on.</p></div>
+      <div class="export-preview" id="exportPreview"><div class="preview-heading"><span>READY TO EXPORT</span><span id="previewCount">3 FILES</span></div><div class="preview-empty" id="previewEmpty">Choose a document to see its output summary.</div><div class="preview-details" id="previewDetails" hidden></div></div>
+      <button class="primary-button" id="exportButton" type="button" disabled><span>Export files</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <p class="privacy-note">Your file never leaves this device. No account, upload, or external service required.</p>
+      <p class="result-message" id="resultMessage" role="status" aria-live="polite" hidden></p>
+    </section>
+    <footer class="app-footer"><span>Text File Splitter</span><span>Runs entirely in your browser</span></footer>
+  </main>
+</body>
+</html>
