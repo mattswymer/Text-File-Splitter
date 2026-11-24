@@ -92,4 +92,4 @@ Use a current version of Chrome, Edge, Firefox, or Safari. JavaScript and the br
 
 ## License
 
-No license has been specified for this repository. Unless a license is added, the source remains subject to the default copyright rules.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for the full license text.
