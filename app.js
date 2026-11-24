@@ -364,6 +364,7 @@ async function loadFile(file) {
   state.isReading = true;
   state.file = null;
   state.text = null;
+  state.stats = null;
   clearResult();
   updateFileSummary();
   updatePreview();
