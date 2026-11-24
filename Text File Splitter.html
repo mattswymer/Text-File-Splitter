@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exact File Splitter (.md / .txt)</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --card: #ffffff;
+      --text: #18202c;
+      --muted: #5c687a;
+      --border: #d9dfe8;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --warn-bg: #fffbeb;
+      --warn-border: #f59e0b;
+      --warn-text: #92400e;
+      --ok-bg: #ecfdf5;
+      --ok-border: #10b981;
+      --ok-text: #065f46;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 32px 16px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 1.45rem;
+    }
+
+    .subtitle {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .field {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 0.92rem;
+    }
+
+    input[type="file"],
+    select,
+    input[type="number"] {
+      font: inherit;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    input[type="file"] {
+      width: 100%;
+    }
+
+    select {
+      min-width: 110px;
+    }
+
+    .meta {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .splits-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .split-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #fafbfd;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+
+    .split-label {
+      font-weight: 500;
+      font-size: 0.92rem;
+    }
+
+    .split-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .split-input-wrap input {
+      width: 90px;
+      text-align: right;
+    }
+
+    .split-preview {
+      font-size: 0.82rem;
+      color: var(--muted);
+      min-width: 125px;
+      text-align: right;
+    }
+
+    .status-box {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      border: 1px solid transparent;
+    }
+
+    .status-ok {
+      background: var(--ok-bg);
+      border-color: var(--ok-border);
+      color: var(--ok-text);
+    }
+
+    .status-warn {
+      background: var(--warn-bg);
+      border-color: var(--warn-border);
+      color: var(--warn-text);
+    }
+
+    .options-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 22px;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    .options-row label {
+      margin: 0;
+      font-weight: 400;
+      cursor: pointer;
+    }
+
+    button.export-btn {
+      width: 100%;
+      padding: 12px 18px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button.export-btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    button.export-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .log {
+      margin-top: 16px;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Exact File Splitter</h1>
+    <p class="subtitle">Split a <code>.md</code> or <code>.txt</code> file by percentage and export each part locally.</p>
+
+    <div class="field">
+      <label for="fileInput">Upload File (.md or .txt)</label>
+      <input type="file" id="fileInput" accept=".md,.txt,text/markdown,text/plain" />
+      <div class="meta" id="fileMeta">No file loaded yet.</div>
+    </div>
+
+    <div class="field">
+      <label for="fileCount">How many files do you want?</label>
+      <select id="fileCount"></select>
+    </div>
+
+    <div class="field">
+      <label>How much of the document should be in each file?</label>
+      <div class="splits-list" id="splitsList"></div>
+      <div class="status-box status-warn" id="sumStatus">Total allocated: 100%</div>
+    </div>
+
+    <div class="options-row">
+      <input type="checkbox" id="strictChars" />
+      <label for="strictChars">Split by exact character count instead of clean word boundaries</label>
+    </div>
+
+    <button class="export-btn" id="exportBtn" disabled>Export</button>
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const fileMeta = document.getElementById("fileMeta");
+    const fileCountSelect = document.getElementById("fileCount");
+    const splitsList = document.getElementById("splitsList");
+    const sumStatus = document.getElementById("sumStatus");
+    const strictCharsCheckbox = document.getElementById("strictChars");
+    const exportBtn = document.getElementById("exportBtn");
+    const logEl = document.getElementById("log");
+
+    let rawText = "";
+    let baseName = "split_part";
+    let extName = ".md";
+
+    // Populate dropdown 1..10, defaulting to 3
+    for (let i = 1; i <= 10; i++) {
+      const opt = document.createElement("option");
+      opt.value = String(i);
+      opt.textContent = String(i);
+      if (i === 3) opt.selected = true;
+      fileCountSelect.appendChild(opt);
+    }
+
+    function countWords(text) {
+      const trimmed = text.trim();
+      if (!trimmed) return 0;
+      return trimmed.split(/\s+/).length;
+    }
+
+    function getDefaultPercentages(count) {
+      const base = Math.floor(100 / count);
+      const remainder = 100 - base * count;
+      return Array.from({ length: count }, (_, idx) =>
+        idx === count - 1 ? base + remainder : base
+      );
+    }
+
+    function getPercentages() {
+      const inputs = [...splitsList.querySelectorAll("input[type='number']")];
+      return inputs.map((inp) => {
+        const val = parseFloat(inp.value);
+        return Number.isFinite(val) && val >= 0 ? val : 0;
+      });
+    }
+
+    function updatePreviewsAndStatus() {
+      const pcts = getPercentages();
+      const totalWords = countWords(rawText);
+      const previews = [...splitsList.querySelectorAll(".split-preview")];
+
+      pcts.forEach((p, idx) => {
+        if (!rawText) {
+          previews[idx].textContent = "";
+          return;
+        }
+        const approxWords = Math.round((p / 100) * totalWords);
+        previews[idx].textContent = `~${approxWords.toLocaleString()} words`;
+      });
+
+      const sum = Number(pcts.reduce((a, b) => a + b, 0).toFixed(4));
+      if (Math.abs(sum - 100) < 0.0001) {
+        sumStatus.className = "status-box status-ok";
+        sumStatus.textContent = `Total allocated: ${sum}% (full document covered)`;
+      } else if (sum < 100) {
+        const left = Number((100 - sum).toFixed(4));
+        sumStatus.className = "status-box status-warn";
+        sumStatus.textContent = `Total allocated: ${sum}% (${left}% of the file is not included)`;
+      } else {
+        const over = Number((sum - 100).toFixed(4));
+        sumStatus.className = "status-box status-warn";
+        sumStatus.textContent = `Total allocated: ${sum}% (${over}% over 100% — later files will receive less or be empty)`;
+      }
+
+      exportBtn.disabled = !rawText || pcts.length === 0 || sum <= 0;
+    }
+
+    function renderSplitRows(existingValues = null) {
+      const count = parseInt(fileCountSelect.value, 10);
+      const defaults = existingValues || getDefaultPercentages(count);
+      splitsList.innerHTML = "";
+
+      for (let i = 0; i < count; i++) {
+        const row = document.createElement("div");
+        row.className = "split-row";
+
+        const label = document.createElement("span");
+        label.className = "split-label";
+        label.textContent = `file ${i + 1}`;
+
+        const inputWrap = document.createElement("div");
+        inputWrap.className = "split-input-wrap";
+
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "0";
+        input.max = "100";
+        input.step = "any";
+        input.value = defaults[i] ?? 0;
+        input.addEventListener("input", updatePreviewsAndStatus);
+
+        const pctSign = document.createElement("span");
+        pctSign.textContent = "%";
+
+        const preview = document.createElement("span");
+        preview.className = "split-preview";
+
+        inputWrap.appendChild(input);
+        inputWrap.appendChild(pctSign);
+
+        row.appendChild(label);
+        row.appendChild(inputWrap);
+        row.appendChild(preview);
+        splitsList.appendChild(row);
+      }
+
+      updatePreviewsAndStatus();
+    }
+
+    function splitByWords(text, pcts) {
+      const tokens = text.match(/\S+\s*/g) || [];
+      const total = tokens.length;
+      const parts = [];
+      let cursor = 0;
+
+      for (let i = 0; i < pcts.length; i++) {
+        const targetCount = Math.round((pcts[i] / 100) * total);
+        const end = Math.min(total, cursor + targetCount);
+        parts.push(tokens.slice(cursor, end).join(""));
+        cursor = end;
+      }
+      return parts;
+    }
+
+    function splitByChars(text, pcts) {
+      const total = text.length;
+      const parts = [];
+      let cursor = 0;
+
+      for (let i = 0; i < pcts.length; i++) {
+        const targetLen = Math.round((pcts[i] / 100) * total);
+        const end = Math.min(total, cursor + targetLen);
+        parts.push(text.slice(cursor, end));
+        cursor = end;
+      }
+      return parts;
+    }
+
+    function downloadTextFile(filename, content) {
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    fileInput.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      rawText = await file.text();
+      const dotIdx = file.name.lastIndexOf(".");
+      if (dotIdx > 0) {
+        baseName = file.name.slice(0, dotIdx);
+        extName = file.name.slice(dotIdx).toLowerCase();
+        if (extName !== ".md" && extName !== ".txt") extName = ".md";
+      } else {
+        baseName = file.name;
+        extName = ".md";
+      }
+
+      const words = countWords(rawText);
+      const kb = (file.size / 1024).toFixed(1);
+      fileMeta.textContent = `Loaded "${file.name}" (${kb} KB · ${words.toLocaleString()} words · ${rawText.length.toLocaleString()} chars)`;
+      logEl.textContent = "";
+      updatePreviewsAndStatus();
+    });
+
+    fileCountSelect.addEventListener("change", () => renderSplitRows());
+
+    exportBtn.addEventListener("click", () => {
+      if (!rawText) return;
+      const pcts = getPercentages();
+      const chunks = strictCharsCheckbox.checked
+        ? splitByChars(rawText, pcts)
+        : splitByWords(rawText, pcts);
+
+      chunks.forEach((chunk, idx) => {
+        const pctLabel = String(pcts[idx]).replace(".", "_");
+        const outName = `${baseName}_part${idx + 1}_${pctLabel}pct${extName}`;
+        downloadTextFile(outName, chunk);
+      });
+
+      logEl.textContent = `Exported ${chunks.length} file(s) using "${baseName}_partN_Xpct${extName}".`;
+    });
+
+    renderSplitRows();
+  </script>
+</body>
+</html>
